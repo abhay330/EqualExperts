@@ -25,11 +25,11 @@ Parameters:
     Description: CIDR of Private Subnet
     Type: String
     Default: 172.20.20.0/24
-  MyInstance1:
+  CICDInstance:
     Type: String
     Description: Instance for Jenkins & Ansible
     Default: "CICD-Server"
-  MyInstance2:
+  AppInstance:
     Type: String
     Description: Instance for Hosting JAVA Application
     Default: "AppServer"
@@ -168,7 +168,7 @@ Resources:
           SubnetId: !Ref PublicSubnet
           Tags:
             - Key: "Name"
-              Value: !Sub "CICD-Server-${Environment}"
+              Value: !Sub "${CICDInstance}-${Environment}"
 
           UserData:
             Fn::Base64:
@@ -194,7 +194,7 @@ Resources:
           SubnetId: !Ref PrivateSubnet
           Tags:
             - Key: "Name"
-              Value: !Sub "AppServer-${Environment}"
+              Value: !Sub "${AppInstance}-${Environment}"
 
           UserData:
             Fn::Base64:
