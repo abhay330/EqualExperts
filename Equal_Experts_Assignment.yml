@@ -202,6 +202,7 @@ Resources:
                 !Sub |
                 #!/bin/bash
                 yum update –y
+                yum remove java-1.7.0-openjdk -y
                 yum install java-1.8.0 java-1.8.0-openjdk-devel -y
                 mkdir /mnt/artefact
 
@@ -210,6 +211,8 @@ Outputs:
     VPC: 
         Description: A reference to the created VPC
         Value: !Ref VPC
+        Export:
+            Name: !Sub "${AWS::StackName}-VPCID"
 
     PublicSubnet:
         Description: Public Subnet 
