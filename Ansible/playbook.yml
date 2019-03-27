@@ -1,0 +1,12 @@
+- hosts: appServer
+  vars:
+        srcFolder: /tmp/Spring-PetClinic/target
+        destFolder: /tmp/Spring-PetClinic/
+  tasks:
+  - name: Copy Artefacts from Jenkins to Local
+    copy:
+        src: "{{ srcFolder }}"
+        dest: "{{ destFolder }}"
+
+  - name: Start JAR application
+    shell: java -jar {{ destFolder }}/target/*.jar &

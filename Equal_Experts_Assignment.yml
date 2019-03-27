@@ -1,0 +1,221 @@
+Description: 
+    This Cloudformation deploys a VPC with Internet Gateway attached. It will have two subnets 1 private and 1 public subnet with NAT gateway attached for communication.
+Parameters:
+  Environment:
+    Description: "Environment"
+    Type: String
+    Default: DEV
+  VpcCIDR: 
+    Description: CIDR of VPC
+    Type: String
+    Default: 172.20.0.0/16
+  MyPublicCIDR:
+    Description: CIDR of Public Subnet
+    Type: String
+    Default: 172.20.10.0/24
+  MyPrivateCIDR:
+    Description: CIDR of Private Subnet
+    Type: String
+    Default: 172.20.20.0/24
+  MyInstance1:
+    Type: String
+    Description: Instance for Jenkins & Ansible
+    Default: "CICD-Server"
+  MyInstance2:
+    Type: String
+    Description: Instance for Hosting JAVA Application
+    Default: "AppServer"
+  MyAMIImageId:
+    Type: String
+    Description: AMI Image to be used for instance.
+    Default: "ami-0ad42f4f66f6c1cc9"
+  MyInstanceType:
+    Type: String
+    Description: Instance Type used for instance.
+    Default: "t2.medium"
+  KeyPair:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: "Key Pair for instance"
+    Default: "DevOps-Mumbai.pem"
+
+Resources:
+    VPC: 
+        Type: AWS::EC2::VPC
+        Properties:
+            CidrBlock: !Ref VpcCIDR
+            Tags: 
+                - Key: Name 
+                  Value: !Ref Environment            
+    InternetGateway:
+        Type: AWS::EC2::InternetGateway
+        Properties:
+            Tags:
+                - Key: Name
+                  Value: !Ref Environment            
+    InternetGatewayAttachment:
+        Type: AWS::EC2::VPCGatewayAttachment
+        Properties:
+            InternetGatewayId: !Ref InternetGateway
+            VpcId: !Ref VPC
+    PublicSubnet: 
+        Type: AWS::EC2::Subnet
+        Properties:
+            VpcId: !Ref VPC
+            CidrBlock: !Ref MyPublicCIDR
+            MapPublicIpOnLaunch: true
+            Tags: 
+                - Key: Name 
+                  Value: !Sub ${Environment} Public Subnet
+    PrivateSubnet: 
+        Type: AWS::EC2::Subnet
+        Properties:
+            VpcId: !Ref VPC
+            CidrBlock: !Ref MyPrivateCIDR
+            MapPublicIpOnLaunch: false
+            Tags: 
+                - Key: Name 
+                  Value: !Sub ${Environment} Private Subnet
+    NatGatewayEIP:
+        Type: AWS::EC2::EIP
+        DependsOn: InternetGatewayAttachment
+        Properties: 
+            Domain: vpc
+    NatGateway: 
+        Type: AWS::EC2::NatGateway
+        Properties: 
+            AllocationId: !GetAtt NatGatewayEIP.AllocationId
+            SubnetId: !Ref PublicSubnet
+    PublicRouteTable:
+        Type: AWS::EC2::RouteTable
+        Properties: 
+            VpcId:  !Ref VPC
+            Tags: 
+                - Key: Name 
+                  Value: !Sub ${Environment} Public Routes
+
+    DefaultPublicRoute: 
+        Type: AWS::EC2::Route
+        DependsOn: InternetGatewayAttachment
+        Properties: 
+            RouteTableId: !Ref PublicRouteTable
+            DestinationCidrBlock: 0.0.0.0/0
+            GatewayId: !Ref InternetGateway
+
+    PublicSubnetRouteTableAssociation:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+            RouteTableId: !Ref PublicRouteTable
+            SubnetId: !Ref PublicSubnet
+
+    PrivateRouteTable:
+        Type: AWS::EC2::RouteTable
+        Properties: 
+            VpcId: !Ref VPC
+            Tags: 
+                - Key: Name 
+                  Value: !Sub ${Environment} Private Routes
+
+    DefaultPrivateRoute:
+        Type: AWS::EC2::Route
+        Properties:
+            RouteTableId: !Ref PrivateRouteTable
+            DestinationCidrBlock: 0.0.0.0/0
+            NatGatewayId: !Ref NatGateway
+
+    PrivateSubnetRouteTableAssociation:
+        Type: AWS::EC2::SubnetRouteTableAssociation
+        Properties:
+            RouteTableId: !Ref PrivateRouteTable
+            SubnetId: !Ref PrivateSubnet
+    InstanceSecurityGroupssh:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: Enable SSH access via port 22
+            SecurityGroupIngress:
+            - IpProtocol: tcp
+              FromPort: '22'
+              ToPort: '22'
+              CidrIp: 0.0.0.0/0
+            VpcId: !Ref VPC
+    InstanceSecurityGroupjenkins:
+        Type: AWS::EC2::SecurityGroup
+        Properties:
+            GroupDescription: Enable Jenkins access via port 8080
+            SecurityGroupIngress:
+            - IpProtocol: tcp
+              FromPort: '8080'
+              ToPort: '8080'
+              CidrIp: 0.0.0.0/0
+            VpcId: !Ref VPC
+
+    CICDServer:
+        Type: AWS::EC2::Instance
+        Properties:
+          InstanceType: !Ref MyInstanceType
+          SecurityGroupIds:
+            - !Ref InstanceSecurityGroupjenkins
+            - !Ref InstanceSecurityGroupssh
+          KeyName: !Ref KeyPair
+          ImageId: !Ref MyAMIImageId
+          SubnetId: !Ref PublicSubnet
+          Tags:
+            - Key: "Name"
+              Value: "CICD-Server"
+
+          UserData:
+            Fn::Base64:
+                !Sub |
+                #!/bin/bash
+                yum update –y
+                wget -O /etc/yum.repos.d/jenkins.repo http://pkg.jenkins.io/redhat/jenkins.repo
+                rpm --import https://pkg.jenkins.io/redhat/jenkins.io.key
+                yum install git -y
+                yum install jenkins -y
+                yum install java-1.8.0 java-1.8.0-openjdk-devel -y
+                yum remove java-1.7.0-openjdk -y
+                mkdir /mnt/artefact
+                pip install ansible
+                service jenkins start
+    AppServer:
+        Type: AWS::EC2::Instance
+        Properties:
+          InstanceType: !Ref MyInstanceType
+          SecurityGroupIds:
+            - !Ref InstanceSecurityGroupssh
+          KeyName: !Ref KeyPair
+          ImageId: !Ref MyAMIImageId
+          SubnetId: !Ref PrivateSubnet
+          Tags:
+            - Key: "Name"
+              Value: "AppServer"
+
+          UserData:
+            Fn::Base64:
+                !Sub |
+                #!/bin/bash
+                yum update –y
+                yum install java-1.8.0 java-1.8.0-openjdk-devel -y
+                yum remove java-1.7.0-openjdk -y
+                mkdir /mnt/artefact
+
+Outputs: 
+
+    VPC: 
+        Description: A reference to the created VPC
+        Value: !Ref VPC
+
+    PublicSubnet:
+        Description: Public Subnet 
+        Value: !Ref PublicSubnet
+
+    PrivateSubnet:
+        Description: Private Subnet
+        Value:  !Ref PrivateSubnet
+        
+    CICDServer:
+        Description: CI-CD Server hosting Jenkins and Ansible
+        Value:  !Ref CICDServer
+        
+    AppServer:
+        Description: EC2 Instance where APP will be deployed
+        Value:  !Ref AppServer
