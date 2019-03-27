@@ -7,7 +7,7 @@
 # Modification Log:
 #--------------------------------------------------------------------------------------------------------------------------------------------------------
 Description: 
-    This Cloudformation stack to create infrastructure to host CICD Setup and App Server hosting Spring-Petclinic JAVA application
+    Cloudformation stack to create infrastructure to host CICD Setup and App Server hosting Spring-Petclinic JAVA application
 Parameters:
   Environment:
     Description: Environment Name
