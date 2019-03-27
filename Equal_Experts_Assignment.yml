@@ -1,8 +1,16 @@
+# ------------------------------------------------------------------------------------------------------------------------------------------------------
+# Template Name: Equal_Experts_Assignment.yml
+# Script Creator: Abhay Kumar
+# Creation Date: 27-March 2019
+# Description: Stack to create infrastructure to host CICD Setup and App Server hosting Spring-Petclinic JAVA application
+# Modification Date:
+# Modification Log:
+#--------------------------------------------------------------------------------------------------------------------------------------------------------
 Description: 
-    This Cloudformation deploys a VPC with Internet Gateway attached. It will have two subnets 1 private and 1 public subnet with NAT gateway attached for communication.
+    This Cloudformation stack to create infrastructure to host CICD Setup and App Server hosting Spring-Petclinic JAVA application
 Parameters:
   Environment:
-    Description: "Environment"
+    Description: Environment Name
     Type: String
     Default: DEV
   VpcCIDR: 
