@@ -172,7 +172,6 @@ Resources:
                 yum install git -y
                 yum install jenkins -y
                 yum install java-1.8.0 java-1.8.0-openjdk-devel -y
-                yum remove java-1.7.0-openjdk -y
                 mkdir /mnt/artefact
                 pip install ansible
                 service jenkins start
@@ -195,7 +194,6 @@ Resources:
                 #!/bin/bash
                 yum update –y
                 yum install java-1.8.0 java-1.8.0-openjdk-devel -y
-                yum remove java-1.7.0-openjdk -y
                 mkdir /mnt/artefact
 
 Outputs: 
