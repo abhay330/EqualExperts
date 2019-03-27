@@ -8,5 +8,9 @@
         src: "{{ srcFolder }}"
         dest: "{{ destFolder }}"
 
+  - name: Install Java
+    shell: yum install java-1.8.0 java-1.8.0-openjdk-devel -y
+    become: yes
+    
   - name: Start JAR application
     shell: java -jar {{ destFolder }}/target/*.jar &
