@@ -1,6 +1,6 @@
 pipeline {
 	environment {
-		GIT_REPOSITORY = "${GITLAB_URL}/SpeedPayNextGen/NotificationRoutingService.git"
+		GIT_REPOSITORY = "https://github.com/abhay330/EqualExperts.git"
 	}
 
 	agent {
